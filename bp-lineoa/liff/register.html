@@ -219,7 +219,7 @@ async function submitForm() {
   const id_card = document.getElementById('id_card').value.trim();
 
   if (!first_name || !last_name || !id_card) {
-    alert('กรุณากรอกชื่อ นามสกุล และเลขบัตรประชาชน');
+    alert('กรุณากรอกชื่อ นามสกุล ');
     return;
   }
 
@@ -232,7 +232,6 @@ async function submitForm() {
     group_type,
     first_name,
     last_name,
-    id_card,
     phone: document.getElementById('phone').value.trim(),
     moo: document.getElementById('moo').value,
     village: document.getElementById('village').value.trim(),
