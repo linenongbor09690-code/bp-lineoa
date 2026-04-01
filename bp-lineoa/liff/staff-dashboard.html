@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Dashboard — รพ.สต.</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Sarabun', sans-serif; background: #F0F4F8; color: #2C3E50; }
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+
+    .topbar {
+      background: #1A3A6B;
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topbar h1 { font-size: 20px; font-weight: 700; }
+    .topbar .subtitle { font-size: 12px; opacity: .7; }
+    .topbar .badge { background: rgba(255,255,255,.2); padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      padding: 16px 20px;
+    }
+    @media(max-width:768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      border-left: 4px solid #2D6BCD;
+    }
+    .stat-card.critical { border-left-color: #E74C3C; }
+    .stat-card.risk { border-left-color: #E67E22; }
+    .stat-card.patient { border-left-color: #F1C40F; }
+    .stat-card.tracked { border-left-color: #27AE60; }
+    .stat-card .label { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: #2C3E50; }
+
+    .content { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 20px 20px; }
+    @media(max-width:900px) { .content { grid-template-columns: 1fr; } }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    }
+    .card h2 { font-size: 15px; font-weight: 600; color: #1A3A6B; margin-bottom: 14px; }
+
+    .patient-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .patient-table th { background: #F5F7FA; padding: 8px 10px; text-align: left; color: #666; font-weight: 500; font-size: 12px; border-bottom: 1px solid #E8EEF8; }
+    .patient-table td { padding: 9px 10px; border-bottom: 1px solid #F0F4F8; vertical-align: middle; }
+    .patient-table tr:hover { background: #F8FAFC; }
+
+    .risk-pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .pill-normal { background: #E8F8EE; color: #1D9E75; }
+    .pill-risk { background: #FEFBE8; color: #C8A000; }
+    .pill-high { background: #FFF3E0; color: #E67E22; }
+    .pill-critical { background: #FCEAEA; color: #E74C3C; }
+
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      padding: 0 20px 12px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid #DDE3EF;
+      background: white;
+      font-size: 12px;
+      cursor: pointer;
+      color: #555;
+      font-family: inherit;
+    }
+    .filter-btn.active { background: #1A3A6B; color: white; border-color: #1A3A6B; }
+
+    .search-bar {
+      padding: 0 20px 12px;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 8px 14px;
+      border: 1.5px solid #DDE3EF;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .search-bar input:focus { outline: none; border-color: #2D6BCD; }
+
+    .loading { text-align: center; padding: 40px; color: #888; }
+    .full-width { grid-column: 1 / -1; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>🏥 Dashboard เจ้าหน้าที่ รพ.สต.</h1>
+    <div class="subtitle">ระบบติดตามความดันโลหิต — ข้อมูลแบบ Real-time</div>
+  </div>
+  <div class="badge" id="last-update">กำลังโหลด...</div>
+</div>
+
+<div class="stats-grid" id="stats-grid">
+  <div class="stat-card"><div class="label">ผู้ลงทะเบียนทั้งหมด</div><div class="value" id="s-total">—</div></div>
+  <div class="stat-card risk"><div class="label">กลุ่มเสี่ยง</div><div class="value" id="s-risk">—</div></div>
+  <div class="stat-card patient"><div class="label">กลุ่มป่วย</div><div class="value" id="s-patient">—</div></div>
+  <div class="stat-card"><div class="label">บันทึกวันนี้</div><div class="value" id="s-today">—</div></div>
+  <div class="stat-card critical"><div class="label">วิกฤตวันนี้</div><div class="value" id="s-critical" style="color:#E74C3C;">—</div></div>
+</div>
+
+<div class="content">
+  <!-- Charts -->
+  <div class="card">
+    <h2>📈 แนวโน้มความดันเฉลี่ยรายวัน (14 วัน)</h2>
+    <canvas id="trendChart" height="200"></canvas>
+  </div>
+  <div class="card">
+    <h2>🍩 การกระจายระดับความเสี่ยง (30 วัน)</h2>
+    <canvas id="distChart" height="200"></canvas>
+  </div>
+
+  <!-- Patient Table -->
+  <div class="card full-width">
+    <h2>👥 รายชื่อผู้ป่วยทั้งหมด</h2>
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterTable('all', this)">ทั้งหมด</button>
+      <button class="filter-btn" onclick="filterTable('risk', this)">กลุ่มเสี่ยง</button>
+      <button class="filter-btn" onclick="filterTable('patient', this)">กลุ่มป่วย</button>
+      <button class="filter-btn" onclick="filterTable('critical', this)">🔴 วิกฤต</button>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="search" placeholder="ค้นหาชื่อ, หมู่บ้าน..." oninput="renderTable()">
+    </div>
+    <div id="table-container"><div class="loading">⏳ กำลังโหลด...</div></div>
+  </div>
+</div>
+
+<script>
+const API_BASE = window.location.origin + '/api';
+const API_KEY = '__STAFF_API_KEY__'; // เปลี่ยนเป็น key จริง
+
+let allUsers = [];
+let currentFilter = 'all';
+
+const headers = { 'x-api-key': API_KEY };
+
+async function loadAll() {
+  try {
+    const [statsRes, usersRes] = await Promise.all([
+      fetch(`${API_BASE}/dashboard/stats`, { headers }),
+      fetch(`${API_BASE}/users?limit=200`, { headers }),
+    ]);
+    const stats = (await statsRes.json()).data;
+    const users = (await usersRes.json()).data;
+
+    allUsers = users;
+    renderStats(stats);
+    renderCharts(stats);
+    renderTable();
+
+    document.getElementById('last-update').textContent =
+      'อัปเดต: ' + new Date().toLocaleTimeString('th-TH');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function renderStats(stats) {
+  document.getElementById('s-total').textContent = stats.total_users || 0;
+  document.getElementById('s-risk').textContent = stats.risk_users || 0;
+  document.getElementById('s-patient').textContent = stats.patient_users || 0;
+  document.getElementById('s-today').textContent = stats.today_records || 0;
+  document.getElementById('s-critical').textContent = stats.critical_today || 0;
+}
+
+function renderCharts(stats) {
+  // Trend Chart
+  const trend = stats.daily_trend || [];
+  if (trend.length) {
+    const ctx1 = document.getElementById('trendChart').getContext('2d');
+    new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: trend.map(r => r.date.slice(5)),
+        datasets: [
+          { label: 'Systolic', data: trend.map(r => r.avg_sys), borderColor: '#2D6BCD', tension: 0.3, fill: false, pointRadius: 3 },
+          { label: 'Diastolic', data: trend.map(r => r.avg_dia), borderColor: '#2A7A6A', tension: 0.3, fill: false, borderDash:[4,2], pointRadius: 3 },
+        ],
+      },
+      options: { responsive: true, scales: { y: { min: 60 } }, plugins: { legend: { position: 'top' } } },
+    });
+  }
+
+  // Distribution Chart
+  const dist = stats.risk_distribution || [];
+  if (dist.length) {
+    const ctx2 = document.getElementById('distChart').getContext('2d');
+    const colorMap = { normal: '#27AE60', risk: '#F1C40F', high: '#E67E22', critical: '#E74C3C' };
+    const labelMap = { normal: 'ปกติ', risk: 'เสี่ยง', high: 'ป่วย', critical: 'วิกฤต' };
+    new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: dist.map(d => labelMap[d.risk_level] || d.risk_level),
+        datasets: [{ data: dist.map(d => d.count), backgroundColor: dist.map(d => colorMap[d.risk_level] || '#888') }],
+      },
+      options: { responsive: true, plugins: { legend: { position: 'right' } } },
+    });
+  }
+}
+
+function filterTable(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function renderTable() {
+  const search = document.getElementById('search').value.toLowerCase();
+  let users = allUsers;
+
+  if (currentFilter === 'risk') users = users.filter(u => u.group_type === 'risk');
+  else if (currentFilter === 'patient') users = users.filter(u => u.group_type === 'patient');
+  else if (currentFilter === 'critical') users = users.filter(u => u.last_risk === 'critical');
+
+  if (search) {
+    users = users.filter(u =>
+      (u.first_name || '').toLowerCase().includes(search) ||
+      (u.last_name || '').toLowerCase().includes(search) ||
+      (u.village || '').includes(search) ||
+      (u.display_name || '').toLowerCase().includes(search)
+    );
+  }
+
+  const riskIcons = { normal:'🟢', risk:'🟡', high:'🟠', critical:'🔴' };
+  const pillClass = { normal:'pill-normal', risk:'pill-risk', high:'pill-high', critical:'pill-critical' };
+  const riskLabel = { normal:'ปกติ', risk:'เสี่ยง', high:'ป่วย', critical:'วิกฤต' };
+  const groupLabel = { normal:'ทั่วไป', risk:'กลุ่มเสี่ยง', patient:'กลุ่มป่วย' };
+
+  const tbody = users.map(u => `
+    <tr>
+      <td><strong>${u.first_name || u.display_name || '-'} ${u.last_name || ''}</strong></td>
+      <td>${groupLabel[u.group_type] || '-'}</td>
+      <td>ม.${u.moo || '-'} ${u.village || '-'}</td>
+      <td>${u.phone || '-'}</td>
+      <td><strong>${u.last_bp || '-'}</strong></td>
+      <td>
+        ${u.last_risk
+          ? `<span class="risk-pill ${pillClass[u.last_risk]}">${riskIcons[u.last_risk]} ${riskLabel[u.last_risk]}</span>`
+          : '<span style="color:#ccc">ยังไม่มีข้อมูล</span>'}
+      </td>
+      <td style="font-size:11px;color:#999;">${u.last_measured ? new Date(u.last_measured).toLocaleDateString('th-TH') : '-'}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('table-container').innerHTML = `
+    <table class="patient-table">
+      <thead>
+        <tr>
+          <th>ชื่อ-สกุล</th>
+          <th>กลุ่ม</th>
+          <th>ที่อยู่</th>
+          <th>โทร</th>
+          <th>ค่าความดันล่าสุด</th>
+          <th>ระดับ</th>
+          <th>วัดล่าสุด</th>
+        </tr>
+      </thead>
+      <tbody>${tbody || '<tr><td colspan="7" style="text-align:center;color:#aaa;padding:20px;">ไม่พบข้อมูล</td></tr>'}</tbody>
+    </table>
+  `;
+}
+
+loadAll();
+setInterval(loadAll, 60000); // Refresh ทุก 1 นาที
+</script>
+</body>
+</html>

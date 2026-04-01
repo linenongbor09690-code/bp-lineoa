@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard ความดันโลหิต</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Sarabun', sans-serif; background: #F0F4F8; color: #2C3E50; min-height: 100vh; }
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap');
+
+    .header {
+      background: #1A3A6B;
+      color: white;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header p { font-size: 12px; opacity: .8; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 14px;
+    }
+    .metric-card {
+      background: white;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .metric-card .label { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .metric-card .value { font-size: 22px; font-weight: 600; }
+    .metric-card .sub { font-size: 10px; color: #aaa; }
+
+    .section { padding: 0 14px 14px; }
+    .section h2 { font-size: 14px; font-weight: 600; color: #444; margin-bottom: 10px; }
+
+    .chart-card {
+      background: white;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      margin-bottom: 14px;
+    }
+    .chart-card h3 { font-size: 13px; color: #555; margin-bottom: 10px; font-weight: 500; }
+
+    .risk-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge-normal { background: #E8F8EE; color: #1D9E75; }
+    .badge-risk { background: #FEFBE8; color: #C8A000; }
+    .badge-high { background: #FFF3E0; color: #E67E22; }
+    .badge-critical { background: #FCEAEA; color: #E74C3C; }
+
+    .records-list { display: flex; flex-direction: column; gap: 8px; }
+    .record-item {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .record-icon { font-size: 20px; flex-shrink: 0; }
+    .record-bp { font-size: 18px; font-weight: 600; color: #2C3E50; }
+    .record-date { font-size: 11px; color: #999; }
+    .record-badge { margin-left: auto; }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: #888;
+      font-size: 14px;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 0 14px 10px;
+    }
+    .tab {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+      color: #555;
+    }
+    .tab.active { background: #1A3A6B; color: white; border-color: #1A3A6B; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📊 Dashboard ความดันโลหิต</h1>
+    <p id="user-name">กำลังโหลดข้อมูล...</p>
+  </div>
+</div>
+
+<div id="app">
+  <div class="loading">⏳ กำลังโหลดข้อมูล...</div>
+</div>
+
+<script>
+const API_BASE = window.location.origin + '/api';
+const LIFF_ID = '__YOUR_LIFF_ID__'; // เปลี่ยนเป็น LIFF ID จริง
+
+const riskIcons = { normal: '🟢', risk: '🟡', high: '🟠', critical: '🔴' };
+const riskLabels = { normal: 'ปกติ', risk: 'กลุ่มเสี่ยง', high: 'ควรพบแพทย์', critical: 'วิกฤต' };
+const riskBadge = { normal: 'badge-normal', risk: 'badge-risk', high: 'badge-high', critical: 'badge-critical' };
+
+async function init() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    const profile = await liff.getProfile();
+    document.getElementById('user-name').textContent = profile.displayName;
+    await loadData(profile.userId);
+  } catch (err) {
+    // Dev mode — ใช้ userId จำลอง
+    console.warn('LIFF not available, using mock data');
+    renderMockData();
+  }
+}
+
+async function loadData(lineUserId) {
+  try {
+    const res = await fetch(`${API_BASE}/my-bp/${lineUserId}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error);
+    renderDashboard(json.data, json.user);
+  } catch (err) {
+    document.getElementById('app').innerHTML = `<div class="loading">❌ ไม่สามารถโหลดข้อมูลได้<br><small>${err.message}</small></div>`;
+  }
+}
+
+function renderDashboard(records, user) {
+  const latest = records[records.length - 1];
+  const last7 = records.slice(-7);
+  const avgSys = records.length ? Math.round(records.reduce((s, r) => s + r.systolic, 0) / records.length) : 0;
+  const avgDia = records.length ? Math.round(records.reduce((s, r) => s + r.diastolic, 0) / records.length) : 0;
+
+  document.getElementById('app').innerHTML = `
+    <div class="metrics">
+      <div class="metric-card">
+        <div class="label">ค่าล่าสุด</div>
+        <div class="value" style="color:#2D6BCD;">${latest ? latest.systolic + '/' + latest.diastolic : '-'}</div>
+        <div class="sub">mmHg</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">ค่าเฉลี่ย</div>
+        <div class="value">${records.length ? avgSys + '/' + avgDia : '-'}</div>
+        <div class="sub">30 วัน</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">บันทึกทั้งหมด</div>
+        <div class="value" style="color:#2A7A6A;">${records.length}</div>
+        <div class="sub">ครั้ง</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('chart', this)">📈 กราฟ</button>
+      <button class="tab" onclick="switchTab('history', this)">📋 ประวัติ</button>
+    </div>
+
+    <div id="tab-chart" class="section">
+      <div class="chart-card">
+        <h3>แนวโน้มค่าความดัน (30 วันล่าสุด)</h3>
+        <canvas id="bpChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <div id="tab-history" class="section" style="display:none;">
+      <h2>ประวัติการวัดล่าสุด</h2>
+      <div class="records-list" id="records-list"></div>
+    </div>
+  `;
+
+  renderChart(records.slice(-30));
+  renderHistory(records.slice(-20).reverse());
+}
+
+function renderChart(records) {
+  const ctx = document.getElementById('bpChart').getContext('2d');
+  const labels = records.map(r => {
+    const d = new Date(r.measured_at);
+    return `${d.getDate()}/${d.getMonth()+1}`;
+  });
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Systolic',
+          data: records.map(r => r.systolic),
+          borderColor: '#2D6BCD',
+          backgroundColor: 'rgba(45,107,205,.08)',
+          tension: 0.3,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: records.map(r => {
+            const map = { normal:'#27AE60', risk:'#F1C40F', high:'#E67E22', critical:'#E74C3C' };
+            return map[r.risk_level] || '#888';
+          }),
+        },
+        {
+          label: 'Diastolic',
+          data: records.map(r => r.diastolic),
+          borderColor: '#2A7A6A',
+          backgroundColor: 'rgba(42,122,106,.05)',
+          tension: 0.3,
+          borderDash: [4, 2],
+          pointRadius: 3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { family: 'Sarabun', size: 11 } } },
+        annotation: {
+          annotations: {
+            line1: { type: 'line', yMin: 140, yMax: 140, borderColor: '#E74C3C', borderWidth: 1, borderDash: [5,3], label: { content: 'เกณฑ์เสี่ยง 140', enabled: true, position: 'end', font: { size: 9 } } }
+          }
+        }
+      },
+      scales: {
+        y: { min: 60, max: 200, ticks: { font: { size: 10 } } },
+        x: { ticks: { font: { size: 10 } } },
+      },
+    },
+  });
+}
+
+function renderHistory(records) {
+  const list = document.getElementById('records-list');
+  if (!list) return;
+  list.innerHTML = records.map(r => {
+    const date = new Date(r.measured_at).toLocaleString('th-TH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return `
+      <div class="record-item">
+        <div class="record-icon">${riskIcons[r.risk_level] || '⚪'}</div>
+        <div>
+          <div class="record-bp">${r.systolic}/${r.diastolic} mmHg</div>
+          <div class="record-date">${date} · ${r.source === 'image' ? '🖼️ รูปภาพ' : '📝 พิมพ์'}</div>
+        </div>
+        <div class="record-badge">
+          <span class="risk-badge ${riskBadge[r.risk_level]}">${riskLabels[r.risk_level]}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-chart').style.display = tab === 'chart' ? 'block' : 'none';
+  document.getElementById('tab-history').style.display = tab === 'history' ? 'block' : 'none';
+}
+
+function renderMockData() {
+  document.getElementById('user-name').textContent = 'ตัวอย่างข้อมูล (Dev Mode)';
+  const mock = Array.from({ length: 14 }, (_, i) => ({
+    systolic: 120 + Math.floor(Math.random() * 40),
+    diastolic: 75 + Math.floor(Math.random() * 25),
+    risk_level: ['normal','normal','risk','high','critical'][Math.floor(Math.random()*3)],
+    measured_at: new Date(Date.now() - (13-i)*86400000).toISOString(),
+    source: i % 3 === 0 ? 'image' : 'text',
+  }));
+  mock.forEach(r => { r.risk_level = r.systolic >= 180 ? 'critical' : r.systolic >= 160 ? 'high' : r.systolic >= 140 ? 'risk' : 'normal'; });
+  renderDashboard(mock, { display_name: 'ตัวอย่าง' });
+}
+
+init();
+</script>
+</body>
+</html>
