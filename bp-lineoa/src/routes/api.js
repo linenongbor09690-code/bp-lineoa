@@ -46,10 +46,10 @@ router.get('/users/:userId/bp', requireApiKey, (req, res) => {
 // ===== LIFF: บันทึกข้อมูลส่วนตัว =====
 router.post('/register', (req, res) => {
   try {
-    const { line_user_id, first_name, last_name, id_card, phone, village, moo, tambon, amphoe, group_type } = req.body;
+   const { line_user_id, first_name, last_name, phone, moo, tambon, amphoe, changwat, group_type } = req.body;
     if (!line_user_id) return res.status(400).json({ error: 'line_user_id required' });
 
-    db.updateUser(line_user_id, { first_name, last_name, id_card, phone, village, moo, tambon, amphoe, group_type });
+  db.updateUser(line_user_id, { first_name, last_name, phone, moo, tambon, amphoe, changwat, group_type });
     res.json({ success: true, message: 'บันทึกข้อมูลเรียบร้อย' });
   } catch (err) {
     res.status(500).json({ error: err.message });
