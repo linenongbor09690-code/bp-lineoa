@@ -156,6 +156,8 @@ function getSelectedGroup() {
 }
 
 async function submitForm() {
+  async function submitForm() {
+  alert('เริ่มบันทึก group=' + getSelectedGroup());
   var group = getSelectedGroup();
   if (!group) {
     document.getElementById('group-error').classList.add('show');
