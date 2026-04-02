@@ -142,7 +142,7 @@ var API_BASE = 'https://bp-monitor-axo6.onrender.com/api';
 var LIFF_ID = '2009672584-hA6Itz4o';
 var lineUserId = '';
 
-document.getElementById('submit-btn').addEventListener('click', submitForm);
+<button type="button" class="btn-submit" id="submit-btn" onclick="submitForm()">✅ บันทึกข้อมูล</button>
 document.getElementById('close-btn').addEventListener('click', function() {
   try { liff.closeWindow(); } catch(e) { window.close(); }
 });
