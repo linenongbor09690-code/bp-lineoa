@@ -2,13 +2,12 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>ลงทะเบียน — ระบบติดตามความดัน</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Sarabun', sans-serif; background: #F0F4F8; }f
-    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Sarabun', sans-serif; background: #F0F4F8; }
 
     .header { background: #1A3A6B; color: white; padding: 18px 16px; }
     .header h1 { font-size: 20px; font-weight: 600; }
@@ -16,111 +15,81 @@
 
     .form-container { padding: 16px; max-width: 480px; margin: 0 auto; }
 
-    .card {
-      background: white;
-      border-radius: 14px;
-      padding: 18px;
-      margin-bottom: 14px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.08);
-    }
+    .card { background: white; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     .card h2 { font-size: 15px; font-weight: 600; color: #1A3A6B; margin-bottom: 14px; border-bottom: 2px solid #E8EEF8; padding-bottom: 8px; }
 
     .form-group { margin-bottom: 14px; }
     label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
     label span.req { color: #E74C3C; }
     input, select {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1.5px solid #DDE3EF;
-      border-radius: 8px;
-      font-size: 14px;
-      font-family: inherit;
-      color: #2C3E50;
-      background: white;
-      transition: border-color .2s;
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid #DDE3EF; border-radius: 8px;
+      font-size: 14px; font-family: inherit; color: #2C3E50; background: white;
     }
     input:focus, select:focus { outline: none; border-color: #2D6BCD; }
-
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
     .group-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .group-btn {
-      border: 2px solid #DDE3EF;
-      border-radius: 10px;
-      padding: 12px;
-      text-align: center;
-      cursor: pointer;
-      transition: all .2s;
-      background: white;
+      border: 2px solid #DDE3EF; border-radius: 10px; padding: 16px 12px;
+      text-align: center; background: white;
+      display: block; width: 100%;
+      cursor: pointer; user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
     }
     .group-btn.selected { border-color: #2D6BCD; background: #EAF2FF; }
-    .group-btn .icon { font-size: 24px; display: block; margin-bottom: 4px; }
-    .group-btn .name { font-size: 13px; font-weight: 500; color: #2C3E50; }
-    .group-btn .desc { font-size: 11px; color: #888; margin-top: 2px; }
+    .group-btn .icon { font-size: 28px; display: block; margin-bottom: 6px; }
+    .group-btn .name { font-size: 14px; font-weight: 600; color: #2C3E50; display: block; }
+    .group-btn .desc { font-size: 11px; color: #888; margin-top: 4px; display: block; }
 
     .btn-submit {
-      width: 100%;
-      padding: 14px;
-      background: #2D6BCD;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background .2s;
+      width: 100%; padding: 14px;
+      background: #2D6BCD; color: white;
+      border: none; border-radius: 10px;
+      font-size: 16px; font-weight: 600; font-family: inherit;
+      cursor: pointer; touch-action: manipulation;
     }
-    .btn-submit:hover { background: #1A5BB8; }
-    .btn-submit:disabled { background: #B0BEC5; cursor: not-allowed; }
+    .btn-submit:disabled { background: #B0BEC5; }
 
-    .success-msg {
-      display: none;
-      text-align: center;
-      padding: 30px;
-      background: white;
-      border-radius: 14px;
-      margin: 20px 16px;
-    }
+    .success-msg { display: none; text-align: center; padding: 30px; background: white; border-radius: 14px; margin: 20px 16px; }
     .success-msg .icon { font-size: 48px; margin-bottom: 10px; }
     .success-msg h2 { color: #27AE60; font-size: 20px; }
     .success-msg p { color: #666; font-size: 14px; margin-top: 8px; }
 
-    .error { color: #E74C3C; font-size: 12px; margin-top: 4px; }
+    .error { color: #E74C3C; font-size: 12px; margin-top: 6px; display: none; }
+    .error.show { display: block; }
   </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>📋 ลงทะเบียนผู้ป่วย</h1>
-  <p>ระบบติดตามความดันโลหิต โรงพยาบาลส่งเสริมสุขภาพตำบลหนองบ่อ</p>
+  <h1>📋 ระบบลงทะเบียน</h1>
+  <p>ระบบติดตามความดันโลหิต รพ.สต.หนองบ่อ</p>
 </div>
 
 <div id="form-section">
 <div class="form-container">
 
-  <!-- กลุ่มผู้ป่วย -->
   <div class="card">
     <h2>👥 ประเภทการลงทะเบียน <span class="req">*</span></h2>
     <div class="group-selector">
-      <div class="group-btn" id="btn-risk">
+      <button type="button" class="group-btn" id="btn-risk">
         <span class="icon">⚠️</span>
-        <div class="name">กลุ่มเสี่ยง</div>
-        <div class="desc">ความดัน 130-139/80-89</div>
-      </div>
-      <div class="group-btn" id="btn-patient">
+        <span class="name">กลุ่มเสี่ยง</span>
+        <span class="desc">ความดัน 130-139/80-89</span>
+      </button>
+      <button type="button" class="group-btn" id="btn-patient">
         <span class="icon">🏥</span>
-        <div class="name">กลุ่มป่วย</div>
-        <div class="desc">ความดัน ≥140/90 mmHg</div>
-      </div>
+        <span class="name">กลุ่มป่วย</span>
+        <span class="desc">ความดัน ≥140/90 mmHg</span>
+      </button>
     </div>
-    <input type="hidden" id="group_type" value="">
-    <div class="error" id="group-error"></div>
+    <div class="error" id="group-error">กรุณาเลือกประเภทการลงทะเบียน</div>
   </div>
 
-  <!-- ข้อมูลส่วนตัว -->
   <div class="card">
-    <h2>ข้อมูลส่วนตัว</h2>
+    <h2>👤 ข้อมูลส่วนตัว</h2>
     <div class="row">
       <div class="form-group">
         <label>ชื่อ <span class="req">*</span></label>
@@ -141,14 +110,11 @@
     </div>
   </div>
 
-  <!-- ที่อยู่ -->
   <div class="card">
-    <h2>ที่อยู่</h2>
-    <div class="row">
-      <div class="form-group">
-        <label>หมู่ที่ <span class="req">*</span></label>
-        <input type="number" id="moo" placeholder="หมู่" min="1" max="20">
-      </div>
+    <h2>🏠 ที่อยู่</h2>
+    <div class="form-group">
+      <label>หมู่ที่ <span class="req">*</span></label>
+      <input type="number" id="moo" placeholder="หมู่" min="1" max="20">
     </div>
     <div class="form-group">
       <label>ตำบล <span class="req">*</span></label>
@@ -158,113 +124,146 @@
       <label>อำเภอ <span class="req">*</span></label>
       <input type="text" id="amphoe" placeholder="อำเภอ">
     </div>
+    <div class="form-group">
+      <label>จังหวัด <span class="req">*</span></label>
+      <input type="text" id="changwat" placeholder="จังหวัด">
+    </div>
   </div>
-  <button class="btn-submit" id="submit-btn" onclick="submitForm()">
+
+  <button type="button" class="btn-submit" id="submit-btn">
     ✅ บันทึกข้อมูล
   </button>
+  <p style="text-align:center;font-size:12px;color:#999;margin-top:8px;" id="status-msg"></p>
 
 </div>
 </div>
 
-<!-- Success State -->
 <div class="success-msg" id="success-msg">
   <div class="icon">🎉</div>
   <h2>ลงทะเบียนสำเร็จ!</h2>
   <p>ข้อมูลของคุณถูกบันทึกเรียบร้อยแล้ว<br>สามารถส่งค่าความดันได้ทันทีผ่านแชท LINE</p>
   <br>
-  <button class="btn-submit" onclick="liff.closeWindow()" style="max-width:200px;margin:0 auto;">
+  <button type="button" class="btn-submit" onclick="closeLiff()" style="max-width:200px;margin:0 auto;display:block;">
     ปิดหน้าต่าง
   </button>
 </div>
 
 <script>
-const API_BASE = window.location.origin + '/api';
+const API_BASE = 'https://bp-monitor-axo6.onrender.com/api';
 const LIFF_ID = '2009672584-hA6Itz4o';
 
 let lineUserId = '';
+let selectedGroup = '';
 
-async function init() {
-  try {
-    await liff.init({ liffId: LIFF_ID });
-    const profile = await liff.getProfile();
-    lineUserId = profile.userId;
-  } catch (err) {
-    lineUserId = 'dev-user-' + Date.now();
-    console.warn('LIFF not available');
-  }
-}
-
+// ===== Group Selection =====
 function selectGroup(group) {
+  selectedGroup = group;
   document.getElementById('btn-risk').classList.remove('selected');
   document.getElementById('btn-patient').classList.remove('selected');
   document.getElementById('btn-' + group).classList.add('selected');
-  document.getElementById('group_type').value = group;
-  document.getElementById('group-error').textContent = '';
+  document.getElementById('group-error').classList.remove('show');
 }
 
+// ใช้ทั้ง click และ touchend รองรับ iOS
+['btn-risk', 'btn-patient'].forEach(function(id) {
+  var btn = document.getElementById(id);
+  var group = id === 'btn-risk' ? 'risk' : 'patient';
+
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    selectGroup(group);
+  });
+
+  btn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    selectGroup(group);
+  });
+});
+
+// ===== Submit =====
+document.getElementById('submit-btn').addEventListener('click', submitForm);
+document.getElementById('submit-btn').addEventListener('touchend', function(e) {
+  e.preventDefault();
+  submitForm();
+});
+
 async function submitForm() {
-  const group_type = document.getElementById('group_type').value;
-  if (!group_type) {
-    document.getElementById('group-error').textContent = 'กรุณาเลือกประเภทการลงทะเบียน';
+  if (!selectedGroup) {
+    document.getElementById('group-error').classList.add('show');
     return;
   }
 
-  const first_name = document.getElementById('first_name').value.trim();
-  const last_name = document.getElementById('last_name').value.trim();
-  const id_card = document.getElementById('id_card').value.trim();
+  var first_name = document.getElementById('first_name').value.trim();
+  var last_name = document.getElementById('last_name').value.trim();
+  var id_card = document.getElementById('id_card').value.trim();
 
-  if (!first_name || !last_name || !id_card) {
-    alert('กรุณากรอกชื่อ นามสกุล ');
+  if (!first_name || !last_name) {
+    alert('กรุณากรอกชื่อและนามสกุล');
     return;
   }
 
-  const btn = document.getElementById('submit-btn');
+  var btn = document.getElementById('submit-btn');
   btn.disabled = true;
   btn.textContent = 'กำลังบันทึก...';
+  document.getElementById('status-msg').textContent = '';
 
-  const data = {
-    line_user_id: lineUserId,
-    group_type,
-    first_name,
-    last_name,
+  var data = {
+    line_user_id: lineUserId || ('guest-' + Date.now()),
+    group_type: selectedGroup,
+    first_name: first_name,
+    last_name: last_name,
     phone: document.getElementById('phone').value.trim(),
     moo: document.getElementById('moo').value,
-    village: document.getElementById('village').value.trim(),
     tambon: document.getElementById('tambon').value.trim(),
     amphoe: document.getElementById('amphoe').value.trim(),
+    changwat: document.getElementById('changwat').value.trim(),
   };
 
   try {
-    const res = await fetch(`${API_BASE}/register`, {
+    var res = await fetch(API_BASE + '/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    const json = await res.json();
-    if (!json.success) throw new Error(json.error);
+    var json = await res.json();
+    if (!json.success) throw new Error(json.error || 'บันทึกไม่สำเร็จ');
 
     document.getElementById('form-section').style.display = 'none';
     document.getElementById('success-msg').style.display = 'block';
 
-    // ส่งข้อความกลับใน LINE
-    if (liff.isInClient()) {
-      liff.sendMessages([{
-        type: 'text',
-        text: `ลงทะเบียนเสร็จแล้ว! ชื่อ: ${first_name} ${last_name} กลุ่ม: ${group_type === 'risk' ? 'เสี่ยง' : 'ป่วย'}`,
-      }]);
-    }
+    try {
+      if (liff.isInClient()) {
+        liff.sendMessages([{ type: 'text', text: 'ลงทะเบียนเสร็จแล้ว! ชื่อ: ' + first_name + ' ' + last_name }]);
+      }
+    } catch(e) {}
+
   } catch (err) {
-    alert('เกิดข้อผิดพลาด: ' + err.message);
+    document.getElementById('status-msg').textContent = 'เกิดข้อผิดพลาด: ' + err.message;
     btn.disabled = false;
     btn.textContent = '✅ บันทึกข้อมูล';
   }
 }
-document.getElementById('btn-risk').addEventListener('click', function() {
-  selectGroup('risk');
-});
-document.getElementById('btn-patient').addEventListener('click', function() {
-  selectGroup('patient');
-});
+
+function closeLiff() {
+  try { liff.closeWindow(); } catch(e) { window.close(); }
+}
+
+// ===== LIFF Init =====
+async function init() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (liff.isLoggedIn()) {
+      var profile = await liff.getProfile();
+      lineUserId = profile.userId;
+    } else {
+      liff.login();
+    }
+  } catch (err) {
+    console.warn('LIFF init failed:', err);
+    lineUserId = 'dev-' + Date.now();
+  }
+}
+
 init();
 </script>
 </body>
