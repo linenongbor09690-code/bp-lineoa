@@ -93,7 +93,7 @@
 
 <div class="header">
   <h1>📋 ลงทะเบียนผู้ป่วย</h1>
-  <p>ระบบติดตามความดันโลหิต รพ.สต.</p>
+  <p>ระบบติดตามความดันโลหิต โรงพยาบาลส่งเสริมสุขภาพตำบลหนองบ่อ</p>
 </div>
 
 <div id="form-section">
@@ -103,12 +103,12 @@
   <div class="card">
     <h2>👥 ประเภทการลงทะเบียน <span class="req">*</span></h2>
     <div class="group-selector">
-      <div class="group-btn" id="btn-risk" onclick="selectGroup('risk')">
+      <div class="group-btn" id="btn-risk">
         <span class="icon">⚠️</span>
         <div class="name">กลุ่มเสี่ยง</div>
         <div class="desc">ความดัน 130-139/80-89</div>
       </div>
-      <div class="group-btn" id="btn-patient" onclick="selectGroup('patient')">
+      <div class="group-btn" id="btn-patient">
         <span class="icon">🏥</span>
         <div class="name">กลุ่มป่วย</div>
         <div class="desc">ความดัน ≥140/90 mmHg</div>
@@ -264,7 +264,12 @@ async function submitForm() {
     btn.textContent = '✅ บันทึกข้อมูล';
   }
 }
-
+document.getElementById('btn-risk').addEventListener('click', function() {
+  selectGroup('risk');
+});
+document.getElementById('btn-patient').addEventListener('click', function() {
+  selectGroup('patient');
+});
 init();
 </script>
 </body>
