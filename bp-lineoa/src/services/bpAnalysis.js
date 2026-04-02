@@ -185,7 +185,7 @@ function buildFlexMessage(systolic, diastolic, riskLevel, userName = '') {
             action: {
               type: 'uri',
               label: 'ดูกราฟประวัติความดัน',
-              uri: `${process.env.LIFF_BASE_URL || 'https://your-domain.com'}/liff/dashboard.html`,
+              uri: `${process.env.LIFF_BASE_URL || 'uri: `https://bp-monitor-axo6.onrender.com/liff/dashboard.html`,
             },
             style: 'primary',
             color: colorMap[riskLevel],
