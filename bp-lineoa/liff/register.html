@@ -148,6 +148,13 @@ function getSelectedGroup() {
 }
 
 function submitForm() {
+  alert('ฟังก์ชันทำงาน');
+```
+Commit แล้วลองกดบันทึกบนมือถือครับ ถ้า alert ขึ้น = ปุ่มทำงานแล้ว ถ้าไม่ขึ้น = ไฟล์ยังไม่อัปเดตครับ
+
+แต่ถ้า Render Deploy แล้วยัง cache อยู่ ลองเปิด URL นี้แทนครับ:
+```
+https://bp-monitor-axo6.onrender.com/liff/register.html?v=2
   var group = getSelectedGroup();
   if (!group) {
     document.getElementById('group-error').classList.add('show');
